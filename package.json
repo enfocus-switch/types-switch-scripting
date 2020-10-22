@@ -1,0 +1,13 @@
+{
+  "name": "@types/switch-scripting",
+  "version": "1.0.0",
+  "description": "The type definition for Enfocus Switch Scripting",
+  "keywords": [
+    "switch-scripting",
+    "enfocus",
+    "enfocus-switch"
+  ],
+  "author": "Enfocus",
+  "license": "UNLICENSED",
+  "private": true
+}
