@@ -8,3 +8,4 @@ Learn Switch Scripting [in the Switch Scripting Developer Guide](https://www.enf
  * Last updated: Tue, 08 Oct 2020 16:30:04 GMT
  * Dependencies: none
  * Global values: `EnfocusSwitch`
+ * Some Additional Detail
