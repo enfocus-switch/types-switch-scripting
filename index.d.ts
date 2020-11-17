@@ -38,7 +38,7 @@ declare enum Scope {
 }
 
 /**
- * An instance of the `Connection` class represents an outgoing connection for the flow element associated with the script.
+ * An instance of the `Connection` class represents an outgoing connection of the flow element associated with the script.
  * Connection objects can be obtained through functions of the `FlowElement` class.
  * @class
  */
@@ -46,10 +46,10 @@ declare class Connection {
   /**
 
    * @description
-   * The element ID for a particular flow element offers the following fundamental guarantees:
-   *- It differs from the element ID for any other flow element in any currently active flow.
+   * The element ID of a particular flow element offers the following fundamental guarantees:
+   *- It differs from the element ID of any other flow element in any currently active flow.
    *- It remains unchanged as long as the flow in which it resides is not edited, even if the flow is deactivated and reactivated and across Switch sessions.
-   *- The element ID for a connection is never equal to the element ID for a non-connection flow element.
+   *- The element ID of a connection is never equal to the element ID of a non-connection flow element.
    *
    * Note that holding or releasing connections or renaming the flow does not count as editing in this context.
    * However, exporting and re-importing (or upgrading) a flow, or renaming a flow element inside the flow, does count as editing.
@@ -67,7 +67,7 @@ declare class Connection {
   /**
    * Returns the value of a custom outgoing connection property as string.
    * The property for which to return the value is specified by its property tag.
-   * @param {string} tag - the tag for what to get property value
+   * @param {string} tag - the tag for which the property value is requested
    * @returns the value of a custom outgoing connection property as string.
    * @see {FlowElement.getPropertyStringValue}
    */
@@ -75,7 +75,7 @@ declare class Connection {
 
   /**
    * Gets the connection property value type.
-   * @param {string} tag - the tag for which property type is requested
+   * @param {string} tag - the tag for which the property type is requested
    * @returns {PropertyType} property type
    * @see See the {@link PropertyType} enumeration for the possible return values.
    */
@@ -83,7 +83,7 @@ declare class Connection {
 
   /**
    * Returns the name of the property as visible in the user interface. (However, this is an untranslated name.)
-   * This method is mostly intended for including the property name in a log message.
+   * This method is mostly intended to include the property name in a log message.
    * @param {string} tag - property tag
    * @returns {string} the name of the property as visible in the user interface.
    */
@@ -99,7 +99,7 @@ declare class Connection {
 declare namespace Connection {
   /**
    * Connection.Level is a static field of the Connection instance that represents the traffic light level of the connection.
-   * It is also available in global scope as EnfocusSwitch.Connection.Level if you need to use it outside of main.js(or .ts).
+   * It is also available in global scope as EnfocusSwitch.Connection.Level if you need to use it outside of main.js (or .ts).
    * It's used to easily provide one of the following supported levels:
    * - Connection.Level.Error
    * - Connection.Level.Warning
@@ -126,7 +126,7 @@ declare class FlowElement {
    * - is a dependent property which is not visible for the current value of the parent property.
    * @param {string} tag - property tag
    * @return {Promise<string | string[]>} - value(s) of a custom script property as string.
-   * @throws an `"invalid tag"` error (for cases see the description)
+   * @throws an `"invalid tag"` error (for more details, see the description)
    * @see {@link PropertyType}
    */
   getPropertyStringValue(tag: string): Promise<string | string[]>;
@@ -142,7 +142,7 @@ declare class FlowElement {
 
   /**
    * Returns the untranslated name of the property as visible in the user interface in English.
-   * This method is mostly intended for including the property name in a log message.
+   * This method is mostly intended to include the property name in a log message.
    * @param {string} tag - property tag
    * @returns {string} the untranslated name of the property as visible in the user interface in English
    */
@@ -156,9 +156,9 @@ declare class FlowElement {
   hasProperty(tag: string): boolean;
 
   /**
-   * Returns a list of Connection instances representing the outgoing connections for the flow element associated with this script.
+   * Returns a list of Connection instances representing the outgoing connections of the flow element associated with this script.
    * The list is in arbitrary order. If there are no outgoing connections, the list is empty.
-   * @returns {Connection[]}  a list of Connection instances representing the outgoing connections for the flow element
+   * @returns {Connection[]}  a list of Connection instances representing the outgoing connections of the flow element
    */
   getOutConnections(): Connection[];
 
@@ -167,7 +167,7 @@ declare class FlowElement {
    * The implementation guarantees only that the time between invocations will not be less than the specified number of seconds.
    * Depending on run-time circumstances the actual interval may be (much) longer.
    * The default value for the timer interval is 300 seconds (5 minutes).
-   * @param {number} seconds - interval between invocations of the `timerFired`. Default is 300 seconds
+   * @param {number} seconds - interval between invocations of `timerFired`. Default is 300 seconds.
    */
   setTimerInterval(seconds: number): void;
 
@@ -176,7 +176,7 @@ declare class FlowElement {
    * Returned promise is resolved when the message is successfully logged, otherwise throws an error.
    * @param {LogLevel} level - level of the message.
    * @param {string} message - the message to be logged
-   * @param {Array} messageParams - message parameters that is used to substitute (see example)
+   * @param {Array} messageParams - message parameters that are used to substitute (see example)
    * @example
    *  async function() {
    *    try {
@@ -205,7 +205,7 @@ declare class FlowElement {
   getPluginResourcesPath(): string;
 
   /**
-   * Creates a new job from a file or folder that already exists at the specified path. Returns a Job instance
+   * Creates a new job from a file or folder that already exists at the specified path. Returns a job instance
    * representing a new job with default values that does not correspond to an incoming job.
    * It should be separately routed using sendTo methods.<br/>
    * If the new job should inherit the job properties of the input job, then use the method {@link Job.createChild} instead. <br/>
@@ -213,7 +213,7 @@ declare class FlowElement {
    * <b>Note:</b> The file or folder that was passed to createJob will not automatically be removed by Switch when sending or failing the job.
    * Therefore it's up to the script to make sure that temporary files or folders passed to createJob are correctly removed
    * after sending or failing the job.
-   * @param {string} path - the path to file or folder
+   * @param {string} path - the path to the file or folder
    * @return {Promise<Job>} a promise containing the new job
    * @example
    * async function timerFired(s, flowElement) {
@@ -238,12 +238,12 @@ declare class FlowElement {
  *
  * Processing a job in a script usually consists of the following steps:
  * - Decide on how to process the job based on file type etc.
- * - Get the path to the incoming job using {@link Job.get}() call with the appropriate access level.
+ * - Get the path to the incoming job using the {@link Job.get}() call with the appropriate access level.
  * - Generate a temporary path for one or more output files or folders.
  * - Create the output(s) in the temporary location.
- * - Create the output job(s) using {@link Job.createChild}() call.
+ * - Create the output job(s) using the {@link Job.createChild}() call.
  * - In addition to (or instead of) creating new jobs it is possible to modify the incoming job.
- * - Call one of the sendTo functions for each output
+ * - Call one of the sendTo functions for each output.
  *
  * If the incoming job is passed along without change, the `Job.sendTo...()` functions can be called
  * directly on the incoming job object, skipping all intermediate steps.
@@ -260,7 +260,7 @@ declare class Job {
    * Returns the file or folder name for the job, but excluding the unique filename prefix (job ID).
    * By default, the returned name includes the file extension. The user can exclude the file extension
    * by setting the includeExtension argument to false.
-   * @param {boolean} [includeExtension=true] - `true` if name should include extension, otherwise `false`.
+   * @param {boolean} [includeExtension=true] - `true` if the name should include the extension, otherwise `false`.
    * @returns {string} the file or folder name for the job (with or without extension)
    */
   getName(includeExtension?: boolean): string;
@@ -289,7 +289,7 @@ declare class Job {
   sendToNull(): Promise<void>;
 
   /**
-   * Sends the job to the single outgoing move connection. The optional argument `newName` allows to rename the job.
+   * Sends the job to the single outgoing move connection. The optional argument `newName` allows renaming the job.
    * @param {string} [newName] - new name for the job (optional)
    * @example
    * await job.sendToSingle('newName.pdf');
@@ -299,7 +299,7 @@ declare class Job {
 
   /**
    * Sends the job to the specified outgoing connection, regardless of the connection type.<br>
-   * The optional argument `newName` allows to rename the job.
+   * The optional argument `newName` allows renaming the job.
    * @param {Connection} connection - the specified outgoing connection
    * @param {string} [newName] - new name for the job (optional)
    * @example
@@ -314,7 +314,7 @@ declare class Job {
 
   /**
    * Sends the jobs to the outgoing "data" traffic light connections that have the specified connection level property enabled.
-   * The optional argument `newName` allows to rename the job.<br/>
+   * The optional argument `newName` allows renaming the job.<br/>
    *
    * If the script is not configured to use traffic light connections, this function logs an error and does nothing.<br/>
    * If the flow element has no outgoing connections of the specified level, the job is failed with an appropriate error message.
@@ -328,7 +328,7 @@ declare class Job {
 
   /**
    * Sends the job to the outgoing "log" traffic light connections that have the specified connection level property enabled.
-   * The optional argument `newName` allows to rename the job.
+   * The optional argument `newName` allows renaming the job.
    *
    * For "data with log" traffic light connections, the job is attached as a metadata dataset to all "data" jobs,
    * that is jobs routed via {@link Job.sendToData}. The `model` argument defines the metadata dataset model
@@ -356,9 +356,9 @@ declare class Job {
   sendToLog(level: Connection.Level, model: DatasetModel, newName?: string): Promise<void>;
 
   /**
-   * Logs a fatal error for the job with the specified message and moves the job to the problem jobs folder.
+   * Logs a fatal error for the job with the specified message and moves the job to the Problem jobs folder.
    * `messageParams` are used as substitutes for `%1`, `%2` etc. in the message.
-   * Note that newly created jobs are not moved to the problem jobs folder
+   * Note that newly created jobs are not moved to the Problem jobs folder
    * (i.e. a job created using `createChild()` or `createJob()` and failed during the same entry point invocation is not moved).
    *
    * If the message string contains references to non-existing message parameters, an error is thrown. See {@link Job.log}.
@@ -377,7 +377,7 @@ declare class Job {
    * If you want to log a message that contains '%' , pass it in the message parameters:
    *
    * `await job.log(LogLevel.Info, '%1', [message]);`
-   * @param {LogLevel} level - the specified level for log message
+   * @param {LogLevel} level - the specified level for the log message
    * @param {string} message - the message itself
    * @param {(string | number | boolean)[]} messageParams - substitutes for `%1`, `%2` etc. in the message
    * @throws an error if the message string contains references to non-existing message parameters
@@ -394,7 +394,7 @@ declare class Job {
 
   /**
    * Returns the value of the private data with the specified tag, or an empty string if no private data with that tag was set for the job.
-   * @param {string} tag - tag to get private data for
+   * @param {string} tag - tag for which to get private data
    * @returns the value of the private data with the specified tag, or an empty string if no private data with that tag was set for the job.
    */
   getPrivateData(tag: string): Promise<string>;
@@ -405,7 +405,7 @@ declare class Job {
    * - If tags are not provided, a list of objects in the format defined above (`{ tag: string, value: string }`).
    * The result will contain all available private data for the job.
    * @see examples in {@link Job.setPrivateData}.
-   * @param {string} [tags] - tag to get private data for (optional)
+   * @param {string} [tags] - tag for which to get private data (optional)
    */
   getPrivateData(tags?: string[]): Promise<{ tag: string, value: string }[]>;
 
@@ -464,7 +464,7 @@ declare class Job {
   /**
    * Removes private data with the specified tag from the job.
    * @param {string} tag - tag for which private data should be removed
-   * @throws an error if no tag specified
+   * @throws an error if no tag is specified
    */
   removePrivateData(tag: string): Promise<void>;
   /**
@@ -492,8 +492,8 @@ declare class Job {
 
   /**
    * Returns the path to the job on the file system. It allows the user to read file/folder contents (if called with `AccessLevel.ReadOnly`)
-   * and/or manipulate it (if called with `AccessLevel.ReadWrite`).
-   * Any file/folder modification will be detected and uploaded automatically on the routing stage (see <u>Routing a job</u> in documentation)
+   * and/or to manipulate it (if called with `AccessLevel.ReadWrite`).
+   * Any file/folder modification will be detected and uploaded automatically on the routing stage (see <u>Routing a job</u> in the scripting documentation)
    *
    * <b>Note:</b> If job content modification is detected:
    * - If called with `AccessLevel.ReadOnly`, an error is thrown.
@@ -501,7 +501,7 @@ declare class Job {
    *
    * The above applies to `Job::sendToSingle`, `Job::sendTo`, `Job::sendToLog` and `Job::sendToData`.
    * @param {AccessLevel} accessLevel - an access level to get the path to the job (ReadOnly or ReadWrite)
-   * @throws an error if unknown `AccessLevel` is provided OR any error happens when job content is transferred/accessed
+   * @throws an error if unknown `AccessLevel` is provided OR any error that occurs when job content is transferred/accessed
    * @example
    * // Example 1:
    * const fs = require("fs-extra");
@@ -545,7 +545,7 @@ declare class Job {
    * <b>Note:</b>  The file or folder that was passed to createChild will not automatically be removed by Switch when sending or failing the job.
    * Therefore it's up to the script to  make sure that temporary files or folders passed to createChild are correctly removed
    * after sending or failing the job.
-   * @param {string} path - a path to file/folder to create a child job
+   * @param {string} path - a path to the file/folder to create a child job
    * @example
    * async function jobArrived(s, flowElement, job) {
    *  try {
@@ -577,9 +577,9 @@ declare class Job {
    * - The file or folder that was passed to `createDataset` will not automatically be removed by Switch when sending or failing the job.
    * Therefore it's up to the script to make sure that temporary files or folders passed to `createDataset` are correctly removed
    * after sending or failing the job.
-   * @param {string} name - the name for new dataset
-   * @param {string} filePath - the path to new dataset
-   * @param {DatasetModel} model - a model for dataset (see allowed values)
+   * @param {string} name - the name for the new dataset
+   * @param {string} filePath - the path to the new dataset
+   * @param {DatasetModel} model - a model for the dataset (see allowed values)
    * @throws an error if neither `name`, `filePath`, nor `model` are specified.
    */
   createDataset(name: string, filePath: string, model: DatasetModel): Promise<void>;
@@ -590,8 +590,8 @@ declare class Job {
    * <b>Note:</b>
    * - Throws an error in case the dataset does not exist.
    * - Throws an error if no name is specified.
-   * @param {string} name - name of dataset to remove
-   * @throws an Error in case the dataset does not exist OR no `name` is specified
+   * @param {string} name - name of the dataset to remove
+   * @throws an Error in case the dataset does not exist OR if no `name` is specified
    */
   removeDataset(name: string): Promise<void>;
 
@@ -609,15 +609,15 @@ declare class Job {
    * <b>Important:</b> We strongly advise you not to use AccessLevel.ReadWrite for this call.
    * For more information, refer to [this issue](https://www.enfocus.com/en/support/known-issues-and-solutions#!/SupportPortalSolution?id=5012p000001Su4kAAC)
    * @param {string} name - dataset name
-   * @param {AccessLevel} accessLevel - access level for dataset (`AccessLevel.ReadOnly` or `AccessLevel.ReadWrite`)
-   * @throws an error if: unknown `AccessLevel` is provided OR any error happens when the dataset content is transferred/accessed.
+   * @param {AccessLevel} accessLevel - access level for the dataset (`AccessLevel.ReadOnly` or `AccessLevel.ReadWrite`)
+   * @throws an error if: unknown `AccessLevel` is provided OR any error that occurs when the dataset content is transferred/accessed.
    * @example
    * const fs = require("fs-extra");
    * async function jobArrived(s, flowElement, job) {
    *  // READ-ONLY example
    *  const tempPath = await job.getDataset(XMLDataset, AccessLevel.ReadOnly);
    *  const content = await fs.readFile(jobPath, { encoding: "utf8" }); // i.e. read file content;
-   *  await job.log(LogLevel.Info, "Dataset content is: ", content); // no changes allowed (readonly operation)
+   *  await job.log(LogLevel.Info, "Dataset content is: ", content); // no changes allowed (read-only operation)
    *  await job.sendToSingle();
    * }
    */
@@ -630,28 +630,37 @@ declare class Job {
  */
 declare class Switch {
   /**
-   * Returns the value of a global data variable with the specified `scope` and `tag`,
-   * or returns an empty string if no global data variable with that `scope` and `tag` was set.
+   * Returns the value of a global data variable with the specified scope and tag, or returns an
+   * empty string if no global data variable with that scope and tag was set.
+   * The lock parameter (false by default) is optional and determines whether or not a lock is set on
+   * global data. A lock can be released by calling the setGlobalData function. If the script doesn't
+   * update the global data, the data remains locked until the end of the script.
    * @param {Scope} scope - the specified scope
    * @param {string} tag - the requested tag
+   * @param {boolean} [lock = false] - Whether or not to set a lock on global data. Releasing of lock is done when calling setGlobalData function. If the script doesn't update the global data, the lock would remain until the end of the script.
    * @returns the value of a global data variable with the specified `scope` and `tag`
    */
-  getGlobalData(scope: Scope, tag: string): Promise<string>;
+  
+  getGlobalData(scope: Scope, tag: string, lock?: boolean): Promise<string>;
   /**
-   * Returns a list of objects in the format defined above (`{ tag: string, value: string }`).
-   * The result will contain only the data for the provided tags.
+   * Returns a list of objects in the format defined above. The result will contain only the data for the
+   * provided tags. If non-existing tags are provided, the result will not contain the data for these tags.
+   * The lock parameter (false by default) is optional and determines whether or not a lock is set on
+   * global data. A lock can be released by calling the setGlobalData function. If the script doesn't
+   * update the global data, the data remains locked until the end of the script
    * If non-existing tags are provided, the result will not contain the data for these tags.
    * @param {Scope} scope - the specified scope
    * @param {string[]} tags - the tags requested
+   * @param {boolean} [lock = false] - Whether or not to set a lock on global data. Releasing of lock is done when calling setGlobalData function. If the script doesn't update the global data, the lock would remain until the end of the script.   
    * @returns a list of objects in the format defined above
    */
-  getGlobalData(scope: Scope, tags: string[]): Promise<{ tag: string, value: string }[]>;
+  getGlobalData(scope: Scope, tags: string[], lock?: boolean): Promise<{ tag: string, value: string }[]>;
 
   /**
    * Sets the value of the global data with the specified scope and tag.
    * @param {Scope} scope - the specified scope
    * @param {string} tag - the specified tag
-   * @param {string} value - the value to set for requested tag
+   * @param {string} value - the value to set for the requested tag
    */
   setGlobalData(scope: Scope, tag: string, value: string): Promise<void>;
   /**
