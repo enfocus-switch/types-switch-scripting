@@ -16,7 +16,8 @@ declare enum PropertyType {
 declare enum LogLevel {
   Info = 'info',
   Warning = 'warning',
-  Error = 'error'
+  Error = 'error',
+  Debug = 'debug'
 }
 
 declare enum DatasetModel {
@@ -37,6 +38,15 @@ declare enum Scope {
   Global = 'global'
 }
 
+declare enum EnfocusSwitchPrivateDataTag {
+  hierarchy = 'EnfocusSwitch.hierarchy',
+  emailAddresses = 'EnfocusSwitch.emailAddresses',
+  emailBody = 'EnfocusSwitch.emailBody',
+  userName = 'EnfocusSwitch.userName',
+  userFullName = 'EnfocusSwitch.userFullName',
+  userEmail = 'EnfocusSwitch.userEmail',
+  origin = 'EnfocusSwitch.origin'
+}
 /**
  * An instance of the `Connection` class represents an outgoing connection of the flow element associated with the script.
  * Connection objects can be obtained through functions of the `FlowElement` class.
@@ -121,12 +131,12 @@ declare class FlowElement {
   /**
    * Returns the value of a custom script property as string. The property for which to return the value is specified by its property tag.
    * In case of an `OAuthToken` property type, the function resolves with a valid OAuth2 token. It is refreshed automatically if needed.
-   * The function throws an `"invalid tag"` error, if the property with the given tag:
+   * The function throws an `"Invalid tag: <tag name>"` error, if the property with the given tag:
    * - is not defined in the script declaration OR
-   * - is a dependent property which is not visible for the current value of the parent property.
+   * - is a dependent property, which is not visible for the current value of the parent property.
    * @param {string} tag - property tag
    * @return {Promise<string | string[]>} - value(s) of a custom script property as string.
-   * @throws an `"invalid tag"` error (for more details, see the description)
+   * @throws an `"Invalid tag: <tag name>"` error (for cases, see the description)
    * @see {@link PropertyType}
    */
   getPropertyStringValue(tag: string): Promise<string | string[]>;
@@ -227,6 +237,53 @@ declare class FlowElement {
    * }
    */
   createJob(path: string): Promise<Job>;
+
+  /**
+   * Returns a list of job instances representing all the jobs currently waiting in the input folders for the flow element.
+   * The list includes all jobs that have "arrived" in the jobArrived entry point, including the job
+   * passed to the current invocation of the jobArrived entry point. If there are no such jobs, the list is empty.
+   * <b>Note:</b> For optimal performance of the script and to reduce the load on the server, this
+   * call should only be used to request up to 10.000 jobs that are known to be ready for
+   * processing. Job IDs to be passed to this call and data needed to decide when each job
+   * will be ready to be processed, can be calculated based on the jobArrived notification of
+   * the particular job and stored as global data to retrieve the result later.<br/>
+   * This method should be called once per entry point execution.<br/>
+   * It is NOT allowed to get private data and metadata for jobs returned by the call or for child jobs
+   * created from jobs that were returned by this call in the same entry point execution. We do allow
+   * setting private data and setting metadata for jobs returned by get jobs.
+   * It is not possible to use this call in a jobArrived entry point within a concurrent script. In that
+   * case, an error will be returned.<br/>
+   *
+   * @param {string[]} ids - IDs of the requested jobs
+   * @return {Promise<Job[]>} a promise containing requested jobs
+   * @example
+   * async function jobArrived(s, flowElement, job) {
+   *   let jobsInfo = await s.getGlobalData(Scope.FlowElement, 'jobsInfo') || {};
+   *   const jobId = job.getId();
+   *   jobsInfo[jobId] = (jobsInfo[jobId] ? jobsInfo[jobId] : new Date().getTime());
+   *   await s.setGlobalData(Scope.FlowElement, 'jobsInfo', jobsInfo); // collect jobs IDs to use them afterwards as parameter for the getJobs call
+   * }
+   * async function timerFired(s, flowElement) {
+   *   await flowElement.setTimerInterval(30); // interval for 'holding' jobs
+   *   const jobsInfo = await s.getGlobalData(Scope.FlowElement, 'jobsInfo');
+   *   const currentTimestamp = new Date().getTime();
+   *   let filteredIds = [];
+   *   for (let id in jobsInfo) { // choose only jobs that have been staying in the flow element for at least 1 hour
+   *     if ((jobsInfo[id] + (60 * 60 * 1000)) <= currentTimestamp && filteredIds.length <= 10000) {
+   *       filteredIds.push(id);
+   *       delete jobsInfo[id];
+   *     }
+   *   }
+   *   if (filteredIds.length > 0) {
+   *     const jobs = await flowElement.getJobs(filteredIds); // note: returns max 10000 jobs
+   *     for (let job of jobs) {
+   *       await job.sendToSingle(); // move each job to the outgoing connection
+   *     }
+   *     await s.setGlobalData(Scope.FlowElement, 'jobsInfo', jobsInfo);
+   *   }
+   * }
+   */
+  getJobs(ids: string[]): Promise<Job[]>;
 }
 
 /**
@@ -289,7 +346,7 @@ declare class Job {
   sendToNull(): Promise<void>;
 
   /**
-   * Sends the job to the single outgoing move connection. The optional argument `newName` allows renaming the job.
+   * Sends the job to the single outgoing 'move' connection. The optional argument `newName` allows renaming the job.
    * @param {string} [newName] - new name for the job (optional)
    * @example
    * await job.sendToSingle('newName.pdf');
@@ -363,12 +420,12 @@ declare class Job {
    *
    * If the message string contains references to non-existing message parameters, an error is thrown. See {@link Job.log}.
    * @param {string} message - the specified message to log alongside with job failing
-   * @param {(string | number | boolean)[]} messageParams - substitutes for `%1`, `%2` etc. in the message
+   * @param {(string | number | boolean)[]} [messageParams] - substitutes for `%1`, `%2` etc. in the message (optional)
    * @throws an error if the message string contains references to non-existing message parameters
    * @example
    * job.fail('Something went wrong with the job %1', [job.getName()])
    */
-  fail(message: string, messageParams: (string | number | boolean)[]): void;
+  fail(message: string, messageParams?: (string | number | boolean)[]): void;
 
   /**
    * Logs a message of the specified level for this job, automatically including the appropriate job information.
@@ -397,46 +454,49 @@ declare class Job {
    * @param {string} tag - tag for which to get private data
    * @returns the value of the private data with the specified tag, or an empty string if no private data with that tag was set for the job.
    */
-  getPrivateData(tag: string): Promise<string>;
+  getPrivateData(tag: string | EnfocusSwitchPrivateDataTag): Promise<any>;
   /**
    * Returns:
    * - If tags are provided, a list of objects in the format defined above. The result will contain only data for the provided tags.
    * If non-existing tags are provided, the result will not contain the data for these tags.
-   * - If tags are not provided, a list of objects in the format defined above (`{ tag: string, value: string }`).
+   * - If tags are not provided, a list of objects in the format defined above (`{ tag: string, value: any }`).
    * The result will contain all available private data for the job.
    * @see examples in {@link Job.setPrivateData}.
-   * @param {string} [tags] - tag for which to get private data (optional)
+   * @param [tags] - tags for which to get private data (optional)
    */
-  getPrivateData(tags?: string[]): Promise<{ tag: string, value: string }[]>;
+  getPrivateData(tags?: (string | EnfocusSwitchPrivateDataTag)[]): Promise<{ tag: string, value: any }[]>;
 
   /**
-   * Sets the value of the private data with the specified tag to the specified string.
+   * Sets the value of the private data with the specified tag to the specified value.
    * If private data with the same tag name exists, the value of the private data will be replaced with the new one.
    * <b>Note:</b>  Throws an error if no arguments are provided, or if the `value` argument is missing.
-   * @param {string} tag - the requested tag
-   * @param {string} value - the value to set
+   * @param tag - the requested tag
+   * @param value - the value to set
    * @throws an error if no arguments are provided, or if the `value` argument is missing.
    */
-  setPrivateData(tag: string, value: string): Promise<void>;
+  setPrivateData(tag: string | EnfocusSwitchPrivateDataTag, value: any): Promise<void>;
   /**
    * Sets the private data values for the specified tags. If private data with the same tag name exists, the value of the private data
    * will be replaced with the new one.
    * <b>Note:</b> Throws an error if no data is specified or if `privateData` is not an array.
-   * @param {{ tag: string, value: string }[]} privateData - data to set
+   * @param privateData - data to set
    * @example
    * // Example for getPrivateData and setPrivateData
    * const expectedPrivateData = [
-   *  { tag: 'tag1', value: 'value1' },
-   *  { tag: 'tag2', value: 'value2' },
-   *  { tag: 'tag3', value: 'value3' },
+   *  { tag: 'tag1', value: 1 },
+   *  { tag: 'tag2', value: true },
+   *  { tag: 'tag3', value: {key: [2,3,4]} },
    * ];
    * try {
    *  await job.setPrivateData('tag4', 'value4');
+   *  await job.setPrivateData(EnfocusSwitchPrivateDataTag.userEmail, 'john.doe@example.com')
    *  await job.setPrivateData(expectedPrivateData);
    *  let actual = await job.getPrivateData();
    *  console.log('get all private data:', actual);
    *  actual = await job.getPrivateData('tag1');
    *  console.log('get one existing:', actual);
+   *  actual = await job.getPrivateData(EnfocusSwitchPrivateDataTag.userEmail);
+   *  console.log('get for predefined:', actual);
    *  actual = await job.getPrivateData('nonExisting');
    *  console.log('get one non-existing:', actual);
    *  actual = await job.getPrivateData(['tag2', 'tag3']);
@@ -450,23 +510,24 @@ declare class Job {
    * /* Output:
    * get all private data: [
    *  { tag: 'BeingProcessedByRemoteProcessElement_7.2', value:'1' },{ tag: 'tag4', value: 'value4' },
-   *  { tag: 'tag1', value: 'value1' },
-   *  { tag: 'tag2', value: 'value2' },
-   *  { tag: 'tag3', value: 'value3' }
+   *  { tag: 'tag1', value: 1 },
+   *  { tag: 'tag2', value: true },
+   *  { tag: 'tag3', value: {key: [2,3,4]} }
    * ]
-   * get one existing: value1
+   * get one existing:1
+   * get for predefined:john.doe@example.com
    * get one non-existing:
-   * get specific: [ { tag: 'tag2', value: 'value2' }, { tag: 'tag3', value: 'value3' } ]
+   * get specific: [ { tag: 'tag2', value: true }, { tag: 'tag3', value: {key: [2,3,4]} } ]
    * --- End of output
    */
-  setPrivateData(privateData: { tag: string, value: string }[]): Promise<void>;
+  setPrivateData(privateData: { tag: string | EnfocusSwitchPrivateDataTag, value: any }[]): Promise<void>;
 
   /**
    * Removes private data with the specified tag from the job.
    * @param {string} tag - tag for which private data should be removed
    * @throws an error if no tag is specified
    */
-  removePrivateData(tag: string): Promise<void>;
+  removePrivateData(tag: string | EnfocusSwitchPrivateDataTag): Promise<void>;
   /**
    * Removes private data with the specified tags from the job.
    * @param {string[]} tags - tags for which private data should be removed
@@ -479,16 +540,18 @@ declare class Job {
    *    { tag: 'toBeRemoved1', value: 'value_removed1' },
    *    { tag: 'toBeRemoved2', value: 'value_removed2' },
    *    { tag: 'toBeRemoved3', value: 'value_removed3' },
+   *    { tag: EnfocusSwitchPrivateDataTag.userName, value: 'Admin'}
    *  ]);
    *  await job.removePrivateData('toBeRemoved1');
    *  await job.removePrivateData(['toBeRemoved2', 'toBeRemoved3']);
+   *  await job.removePrivateData(EnfocusSwitchPrivateDataTag.userName);
    *  await job.sendToSingle();
    * } catch (e) {
    *  console.log(e);
    *  job.fail(`${job.getName()} : ${e.message}`, []);
    * }
    */
-  removePrivateData(tags: string[]): Promise<void>;
+  removePrivateData(tags: (string | EnfocusSwitchPrivateDataTag)[]): Promise<void>;
 
   /**
    * Returns the path to the job on the file system. It allows the user to read file/folder contents (if called with `AccessLevel.ReadOnly`)
@@ -543,7 +606,7 @@ declare class Job {
    * `timerFired` entry point, then use {@link FlowElement.createJob}.
    *
    * <b>Note:</b>  The file or folder that was passed to createChild will not automatically be removed by Switch when sending or failing the job.
-   * Therefore it's up to the script to  make sure that temporary files or folders passed to createChild are correctly removed
+   * Therefore it's up to the script to make sure that temporary files or folders passed to createChild are correctly removed
    * after sending or failing the job.
    * @param {string} path - a path to the file/folder to create a child job
    * @example
@@ -637,39 +700,40 @@ declare class Switch {
    * update the global data, the data remains locked until the end of the script.
    * @param {Scope} scope - the specified scope
    * @param {string} tag - the requested tag
-   * @param {boolean} [lock = false] - Whether or not to set a lock on global data. Releasing of lock is done when calling setGlobalData function. If the script doesn't update the global data, the lock would remain until the end of the script.
+   * @param {boolean} [lock = false] - Whether or not to set a lock on global data. A lock can be released by calling the setGlobalData function. If the script doesn't update the global data, the lock remains until the end of the script.
    * @returns the value of a global data variable with the specified `scope` and `tag`
    */
-  
-  getGlobalData(scope: Scope, tag: string, lock?: boolean): Promise<string>;
+
+  getGlobalData(scope: Scope, tag: string, lock?: boolean): Promise<any>;
   /**
    * Returns a list of objects in the format defined above. The result will contain only the data for the
    * provided tags. If non-existing tags are provided, the result will not contain the data for these tags.
    * The lock parameter (false by default) is optional and determines whether or not a lock is set on
    * global data. A lock can be released by calling the setGlobalData function. If the script doesn't
-   * update the global data, the data remains locked until the end of the script
+   * update the global data, the data remains locked until the end of the script.
    * If non-existing tags are provided, the result will not contain the data for these tags.
    * @param {Scope} scope - the specified scope
    * @param {string[]} tags - the tags requested
-   * @param {boolean} [lock = false] - Whether or not to set a lock on global data. Releasing of lock is done when calling setGlobalData function. If the script doesn't update the global data, the lock would remain until the end of the script.   
-   * @returns a list of objects in the format defined above
+   * @param {boolean} [lock = false] - Whether or not to set a lock on global data. A lock can be released by calling the setGlobalData function.
+   * If the script doesn't update the global data, the lock remains until the end of the script.
+   * @returns a promise that resolves with a list of objects in the format: { tag: string, value: any }[]
    */
-  getGlobalData(scope: Scope, tags: string[], lock?: boolean): Promise<{ tag: string, value: string }[]>;
+  getGlobalData(scope: Scope, tags: string[], lock?: boolean): Promise<{ tag: string, value: any }[]>;
 
   /**
    * Sets the value of the global data with the specified scope and tag.
    * @param {Scope} scope - the specified scope
    * @param {string} tag - the specified tag
-   * @param {string} value - the value to set for the requested tag
+   * @param value - the value to set for the requested tag
    */
-  setGlobalData(scope: Scope, tag: string, value: string): Promise<void>;
+  setGlobalData(scope: Scope, tag: string, value: any): Promise<void>;
   /**
    * Sets the global data values for the specified tags and scope.
    * If global data with the same tag name exists, the value of the global data will be replaced with the new one.
    * @param {Scope} scope - the specified scope
-   * @param {{ tag: string, value: string }[]} globalData - global data (pairs of tag => value) to set
+   * @param globalData - global data (pairs of tag => value) to set
    */
-  setGlobalData(scope: Scope, globalData: { tag: string, value: string }[]): Promise<void>;
+  setGlobalData(scope: Scope, globalData: { tag: string, value: any }[]): Promise<void>;
 
   /**
    * Removes the global data for the specified `scope` and `tag`.
@@ -685,4 +749,343 @@ declare class Switch {
    * <b>Note:</b> It's recommended to remove global data as soon as it is not needed anymore.
    */
   removeGlobalData(scope: Scope, tags: string[]): Promise<void>;
+}
+
+/**
+ * The PdfDocument class allows retrieving certain PDF information about PDF file contents.
+ * The class does not allow modifying file contents.
+ * 
+ * Each PdfDocument instance references a particular file, which may be any file on the local file system (whether it is a job or not).
+ * All the methods in this class might throw an exception, so it is advised to wrap it into a try-catch block.
+ */
+declare class PdfDocument {
+  /**
+   * Constructs a PdfDocument instance associated with a file specified through its absolute file path.
+   * @param {string} path - absolute path to a PDF file.
+   * @returns {PdfDocument} An instance of the PdfDocument class.
+   */
+  static open(path: string): PdfDocument;
+
+  /**
+   * Closes the PDF file. This method should be called when an instance of the PdfDocument class is not required anymore.
+   */
+  close();
+
+  /**
+   * Returns the number of pages in the PDF document.
+   * @returns {number} The number of pages in the PDF document.
+   */
+  getNumberOfPages(): number;
+
+  /**
+   * Returns the number of pages in the PDF document.
+   * @param {string} path - absolute path to a PDF file.
+   * @returns {number} The number of pages in the PDF document.
+   */
+  static getNumberOfPages(path: string): number;
+
+  /**
+   * Returns the version of the PDF file format (for example "1.6").
+   * @returns {string} the version of the PDF file format.
+   */
+  getPDFVersion(): string;
+
+  /**
+   * Returns the version of the PDF file format (for example "1.6").
+   * @param {string} path - absolute path to a PDF file.
+   * @returns {string} the version of the PDF file format.
+   */
+  static getPDFVersion(path: string): string;
+
+  /**
+   * Returns the PDF/X version of the document, or an empty string if there is no PDF/X version.
+   * The PDF/X version indicates a claim that the document conforms to the PDF/X specification, but it does not offer any guarantees.
+   * @returns {string} the PDF/X version.
+   */
+  getPDFXVersion(): string;
+
+  /**
+   * Returns the PDF/X version of the document, or an empty string if there is no PDF/X version.
+   * The PDF/X version indicates a claim that the document conforms to the PDF/X specification, but it does not offer any guarantees.
+   * @param {string} path - absolute path to a PDF file.
+   * @returns {string} the PDF/X version.
+   */
+  static getPDFXVersion(path: string): string;
+
+  /**
+   * Returns the method used to protect the document.
+   * @returns {string} the method used to protect the document.
+   */
+  getSecurityMethod(): string;
+
+  /**
+   * Returns the method used to protect the document.
+   * @param {string} path - absolute path to a PDF file.
+   * @returns {string} the method used to protect the document.
+   */
+  static getSecurityMethod(path: string): string;
+
+  /**
+   * Constructs a PdfPage instance for the PDF page with number <pageNumber>. The first page in the PDF has a number 1.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @returns {PdfPage} An instance of PdfPage class.
+   */
+  getPage(pageNumber?: number): PdfPage;
+
+  /**
+   * Returns the height of the PDF page, in points. It is the same as getPageMediaBoxHeight.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the PDF page, in points.
+   */
+  static getPageHeight(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the width of the PDF page, in points. It is the same as getPageMediaBoxWidth.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the PDF page, in points.
+   */
+  static getPageWidth(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the height of the media box of the PDF page, in points.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the media box of the PDF page, in points.
+   */
+  static getPageMediaBoxHeight(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the width of the media box of the PDF page, in points.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the media box of the PDF page, in points.
+   */
+  static getPageMediaBoxWidth(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the height of the crop box of the PDF page, in points.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the crop box of the PDF page, in points.
+   */
+  static getPageCropBoxHeight(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the width of the crop box of the PDF page, in points.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the crop box of the PDF page, in points.
+   */
+  static getPageCropBoxWidth(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the height of the bleed box of the PDF page, in points.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the bleed box of the PDF page, in points.
+   */
+  static getPageBleedBoxHeight(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the width of the bleed box of the PDF page, in points.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the bleed box of the PDF page, in points.
+   */
+  static getPageBleedBoxWidth(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the height of the trim box of the PDF page, in points.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the trim box of the PDF page, in points.
+   */
+  static getPageTrimBoxHeight(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the width of the trim box of the PDF page, in points.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the trim box of the PDF page, in points.
+   */
+  static getPageTrimBoxWidth(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the height of the art box of the PDF page, in points.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the art box of the PDF page, in points.
+   */
+  static getPageArtBoxHeight(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the width of the art box of the PDF page, in points.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the art box of the PDF page, in points.
+   */
+  static getPageArtBoxWidth(path: string, pageNumber?: number, effective?: boolean): number;
+
+  /**
+   * Returns the rotation of the PDF page, in degrees.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @returns {number} the rotation of the PDF page, in degrees.
+   */
+  static getPageRotation(path: string, pageNumber?: number): number;
+
+  /**
+   * Returns the scaling of the PDF page.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @returns {number} the scaling of the PDF page.
+   */
+  static getPageScaling(path: string, pageNumber?: number): number;
+
+  /**
+   * Returns the page label of the PDF page, or an empty string if the page has no page label.
+   * @param {string} path - absolute path to a PDF file.
+   * @param {number} [pageNumber=1] - 1-based number of the PDF page.
+   * @returns {string} - the page label of the PDF page.
+   */
+  static getPageLabel(path: string, pageNumber?: number): string;
+}
+
+
+/**
+ * The PdfPage class allows retrieving certain PDF information about PDF page contents.
+ * The class does not allow modifying page contents.
+ * 
+ * Each PdfPage instance references a particular PDF page in a file. It can be constructed using the PdfDocument.getPage call.
+ * All the methods in this class might throw an exception, so it is advised to wrap it into a try-catch block.
+ */
+declare class PdfPage {
+  /**
+   * Returns the height of the PDF page, in points. It does the same as getMediaBoxHeight.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the PDF page, in points.
+   */
+  getHeight(effective?: boolean): number;
+
+  /**
+   * Returns the width of the PDF page, in points. It is the same as getMediaBoxWidth.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the PDF page, in points.
+   */
+  getWidth(effective?: boolean): number;
+
+  /**
+   * Returns the height of the media box of the PDF page, in points.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the media box of the PDF page, in points.
+   */
+  getMediaBoxHeight(effective?: boolean): number;
+
+  /**
+   * Returns the width of the media box of the PDF page, in points.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the media box of the PDF page, in points.
+   */
+  getMediaBoxWidth(effective?: boolean): number;
+
+  /**
+   * Returns the height of the crop box of the PDF page, in points.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the crop box of the PDF page, in points.
+   */
+  getCropBoxHeight(effective?: boolean): number;
+
+  /**
+   * Returns the width of the crop box of the PDF page, in points.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the crop box of the PDF page, in points.
+   */
+  getCropBoxWidth(effective?: boolean): number;
+
+  /**
+   * Returns the height of the bleed box of the PDF page, in points.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the bleed box of the PDF page, in points.
+   */
+  getBleedBoxHeight(effective?: boolean): number;
+
+  /**
+   * Returns the width of the bleed box of the PDF page, in points.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the bleed box of the PDF page, in points.
+   */
+  getBleedBoxWidth(effective?: boolean): number;
+
+  /**
+   * Returns the height of the trim box of the PDF page, in points.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the trim box of the PDF page, in points.
+   */
+  getTrimBoxHeight(effective?: boolean): number;
+
+  /**
+   * Returns the width of the trim box of the PDF page, in points.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the trim box of the PDF page, in points.
+   */
+  getTrimBoxWidth(effective?: boolean): number;
+
+  /**
+   * Returns the height of the art box of the PDF page, in points.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the height of the art box of the PDF page, in points.
+   */
+  getArtBoxHeight(effective?: boolean): number;
+
+  /**
+   * Returns the width of the art box of the PDF page, in points.
+   * @param {boolean} [effective=true] - if `true` then page rotation and scaling are taken into account.
+   * @returns {number} the width of the art box of the PDF page, in points.
+   */
+  getArtBoxWidth(effective?: boolean): number;
+
+  /**
+   * Returns the rotation of the PDF page, in degrees.
+   * @returns {number} the rotation of the PDF page, in degrees.
+   */
+  getRotation(): number;
+
+  /**
+   * Returns the scaling of the PDF page.
+   * @returns {number} the scaling of the PDF page.
+   */
+  getScaling(): number;
+
+  /**
+   * Returns the page label of the PDF page, or an empty string if the page has no page label.
+   * @returns {string} - the page label of the PDF page.
+   */
+  getPageLabel(): string;
+}
+
+declare const EnfocusSwitch: {
+  AccessLevel: typeof AccessLevel,
+  Connection: {
+    Level: typeof Connection.Level
+  },
+  DatasetModel: typeof DatasetModel,
+  EnfocusSwitchPrivateDataTag: typeof EnfocusSwitchPrivateDataTag,
+  LogLevel: typeof LogLevel,
+  PdfDocument: typeof PdfDocument,
+  PropertyType: typeof PropertyType,
+  Scope: typeof Scope
 }
