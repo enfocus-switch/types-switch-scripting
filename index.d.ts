@@ -45,7 +45,9 @@ declare enum EnfocusSwitchPrivateDataTag {
   userName = 'EnfocusSwitch.userName',
   userFullName = 'EnfocusSwitch.userFullName',
   userEmail = 'EnfocusSwitch.userEmail',
-  origin = 'EnfocusSwitch.origin'
+  origin = 'EnfocusSwitch.origin',
+  initiated = 'EnfocusSwitch.initiated',
+  submittedTo = 'EnfocusSwitch.submittedTo',
 }
 /**
  * An instance of the `Connection` class represents an outgoing connection of the flow element associated with the script.
@@ -122,12 +124,33 @@ declare namespace Connection {
   }
 }
 
+declare namespace HttpRequest {
+  /**
+   * Static field that represents the method of the HTTP(S) request.
+   * It's used to easily provide one of the following supported methods:
+   * - HttpRequest.Method.POST
+   * - HttpRequest.Method.PUT
+   * - HttpRequest.Method.DELETE
+   */
+  enum Method {
+    POST = 'POST',
+    PUT = 'PUT',
+    DELETE = 'DELETE',
+  }
+}
+
 /**
  * The single instance of the FlowElement class is passed as an argument to the script entry points
  * that operate in the context of a particular flow element.
  * @class
  */
 declare class FlowElement {
+  /**
+   * Returns the name of the flow element.
+   * @returns {string} the name of the flow element.
+   */
+  getName(): string;
+  
   /**
    * Returns the value of a custom script property as string. The property for which to return the value is specified by its property tag.
    * In case of an `OAuthToken` property type, the function resolves with a valid OAuth2 token. It is refreshed automatically if needed.
@@ -347,6 +370,7 @@ declare class Job {
 
   /**
    * Sends the job to the single outgoing 'move' connection. The optional argument `newName` allows renaming the job.
+   * Throws an error in case there is no outgoing connection.
    * @param {string} [newName] - new name for the job (optional)
    * @example
    * await job.sendToSingle('newName.pdf');
@@ -749,6 +773,90 @@ declare class Switch {
    * <b>Note:</b> It's recommended to remove global data as soon as it is not needed anymore.
    */
   removeGlobalData(scope: Scope, tags: string[]): Promise<void>;
+
+  /**
+   * Unsubscribes webhook requests.
+   * @param {HttpRequest.Method} method - HTTP request method that can be used for handling webhooks.
+   * @param {string} path - relative URL path used for httpRequestSubscribe.
+   */
+  httpRequestUnsubscribe(method: HttpRequest.Method, path: string): Promise<void>;
+
+  /**
+   * Subscribes to incoming webhook requests.
+   * @param {HttpRequest.Method} method - HTTP request method that can be used for handling webhooks.
+   * @param {string} path - relative URL path. For the absolute URL that needs to be put in the 3rd application, the relative path needs to be prepended with the location of SwitchWebService, for example https://192.168.0.45:51088/scripting/${path}.
+   * @param {any[]} args - optional arguments that are provided to be passed to the sync and async callbacks
+   */
+  httpRequestSubscribe(
+    method: HttpRequest.Method,
+    path: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    args: any[]
+  ): Promise<void>
+}
+
+/**
+ * Represents the arrived webhook request.
+ */
+declare class HttpRequest {
+  /**
+   * Request method.
+   */
+  method: HttpRequest.Method;
+
+  /**
+   * Request path.
+   */
+  path: string;
+
+  /**
+   * Request query.
+   */
+  query: { [propName: string]: string | string[] };
+
+  /**
+   * Request headers.
+   */
+  headers: { [header: string]: string };
+
+  /**
+   * Request remote address.
+   */
+  remoteAddress: string;
+
+  /**
+   * Request body.
+   */
+  body: ArrayBuffer | undefined;
+
+  /**
+   * Returns the body of the request as string.
+   */
+  getBodyAsString(): string;
+}
+
+/**
+ * Represents the response to the webhook request.
+ */
+declare class HttpResponse {
+  /**
+   * Sets the status code for the HTTP response.
+   * @param {number} statusCode - status code of the response.
+   */
+  setStatusCode(statusCode: number): void;
+
+  /**
+   * Sets the header for the HTTP response.
+   * @param {string} name - header name.
+   * @param {string} value - header value.
+   */
+  setHeader(name: string, value: string): void;
+
+  /**
+   * Sets the data for the HTTP response.
+   * @param {ArrayBuffer | string} data - response data.
+   */
+  setBody(data: ArrayBuffer | string): void;
 }
 
 /**
@@ -1077,6 +1185,167 @@ declare class PdfPage {
   getPageLabel(): string;
 }
 
+
+/**
+ * The ImageDocument class allows retrieving certain information about image file contents (Supported file formats: JPEG, TIFF, PNG). It reads the values from EXIF and XMP.
+ * The class does not allow modifying file contents.
+ * 
+ * Each ImageDocument instance references a particular file, which may be any file on the local file system (whether it is a job or not).
+ * All the static methods in this class might throw an exception, so it is advised to wrap it into try-catch block.
+ * @class
+ */
+ declare class ImageDocument {
+  /**
+   * Open image document to extract image data
+   * @param {string} path - absolute path to an image file.
+   * @returns {Promise<ImageDocument>} An instance of the ImageDocument class.
+   */
+  static open(path: string): Promise<ImageDocument>;
+
+  /**
+   * Closes the image file. This method should be called when an instance of ImageDocument class is not required anymore.
+   */
+  close();
+
+  /**
+   * Returns the valid image width, in pixels.
+   * @return {number} - the valid image width, in pixels.
+   */
+  getWidth(): number;
+
+  /**
+   * Returns the valid image width, in pixels.
+   * @param {string} path - absolute path to an image file.
+   * @return {Promise<number>} -  the valid image width, in pixels.
+   */
+  static getWidth(path: string): Promise<number>;
+
+  /**
+   * Returns the valid image height, in pixels.
+   * @return {number} - the valid image height, in pixels.
+   */
+  getHeight(): number;
+
+  /**
+   * Returns the valid image height, in pixels.
+   * @param {string} path - absolute path to an image file.
+   * @return {Promise<number>} -  the valid image height, in pixels.
+   */
+  static getHeight(path: string): Promise<number>;
+
+  /**
+   * Returns the color mode used.
+   * @return {ImageDocument.ColorMode} - the color mode used: 
+   * - ImageDocument.ColorMode.Bitmap
+   * - ImageDocument.ColorMode.Gray
+   * - ImageDocument.ColorMode.IndexedColor
+   * - ImageDocument.ColorMode.RGB
+   * - ImageDocument.ColorMode.CMYK
+   * - ImageDocument.ColorMode.Multichannel
+   * - ImageDocument.ColorMode.Duotone
+   * - ImageDocument.ColorMode.LabColor
+   * - ImageDocument.ColorMode.Unknown
+   */
+  getColorMode(): ImageDocument.ColorMode;
+
+  /**
+   * Returns the color mode used.
+   * @param {string} path - absolute path to an image file.
+   * @return {Promise<ImageDocument.ColorMode>} - the color mode used: 
+   * - ImageDocument.ColorMode.Bitmap
+   * - ImageDocument.ColorMode.Gray
+   * - ImageDocument.ColorMode.IndexedColor
+   * - ImageDocument.ColorMode.RGB
+   * - ImageDocument.ColorMode.CMYK
+   * - ImageDocument.ColorMode.Multichannel
+   * - ImageDocument.ColorMode.Duotone
+   * - ImageDocument.ColorMode.LabColor
+   * - ImageDocument.ColorMode.Unknown
+   */
+  static getColorMode(path: string): Promise<ImageDocument.ColorMode>;
+
+  /**
+   * Returns the color space used.
+   * @return {ImageDocument.ColorSpace} - the color space used:  
+   * - ImageDocument.ColorSpace.SRGB
+   * - ImageDocument.ColorSpace.Uncalibrated
+   */
+  getColorSpace(): ImageDocument.ColorSpace;
+
+  /**
+   * Returns the color space used.
+   * @param {string} path - absolute path to an image file.
+   * @return {Promise<ImageDocument.ColorSpace>} - the color space used: 
+   * - ImageDocument.ColorSpace.SRGB
+   * - ImageDocument.ColorSpace.Uncalibrated
+   */
+  static getColorSpace(path: string): Promise<ImageDocument.ColorSpace>;
+
+  /**
+   * Returns the name of the ICC color profile used (Photoshop only).
+   * @return {string} - the name of the ICC color profile used.
+   */
+  getICCProfile(): string;
+
+  /**
+   * Returns the name of ICC color profile used (Photoshop only). 
+   * @param {string} path - absolute path to an image file.
+   * @return {Promise<string>} - the name of ICC color profile used.
+   */
+  static getICCProfile(path: string): Promise<string>;
+
+  /**
+   * Returns the number of components per pixel.
+   * @return {number} - the number of components per pixel.
+   */
+  getSamplesPerPixel(): number;
+
+  /**
+   * Returns the number of components per pixel.
+   * @param {string} path - absolute path to an image file.
+   * @return {Promise<number>} - the number of components per pixel.
+   */
+  static getSamplesPerPixel(path: string): Promise<number>;
+}
+
+declare namespace ImageDocument {
+  /**
+   * Enum ColorSpace
+   * It's used to easily provide one of the following supported values:
+   * - ImageDocument.ColorSpace.SRGB
+   * - ImageDocument.ColorSpace.Uncalibrated
+   */
+  enum ColorSpace {
+    SRGB = 'sRGB',
+    Uncalibrated = 'uncalibrated',
+  }
+  
+  /**
+   * Enum ColorMode
+   * It's used to easily provide one of the following supported values:
+   * - ImageDocument.ColorMode.Bitmap
+   * - ImageDocument.ColorMode.Gray
+   * - ImageDocument.ColorMode.IndexedColor
+   * - ImageDocument.ColorMode.RGB
+   * - ImageDocument.ColorMode.CMYK
+   * - ImageDocument.ColorMode.Multichannel
+   * - ImageDocument.ColorMode.Duotone
+   * - ImageDocument.ColorMode.LabColor
+   * - ImageDocument.ColorMode.Unknown
+   */
+  enum ColorMode {
+    Bitmap = 'Bitmap',
+    Gray = 'Gray',
+    IndexedColor = 'Indexed color',
+    RGB = 'RGB',
+    CMYK = 'CMYK',
+    Multichannel = 'Multichannel',
+    Duotone = 'Duotone',
+    LabColor = 'Lab color',
+    Unknown = 'Unknown'
+  }
+}
+
 declare const EnfocusSwitch: {
   AccessLevel: typeof AccessLevel,
   Connection: {
@@ -1086,6 +1355,10 @@ declare const EnfocusSwitch: {
   EnfocusSwitchPrivateDataTag: typeof EnfocusSwitchPrivateDataTag,
   LogLevel: typeof LogLevel,
   PdfDocument: typeof PdfDocument,
+  ImageDocument: typeof ImageDocument,
   PropertyType: typeof PropertyType,
-  Scope: typeof Scope
+  Scope: typeof Scope,
+  HttpRequest: {
+    Method: typeof HttpRequest.Method
+  }
 }
