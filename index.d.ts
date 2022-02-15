@@ -877,7 +877,7 @@ declare class PdfDocument {
   /**
    * Closes the PDF file. This method should be called when an instance of the PdfDocument class is not required anymore.
    */
-  close();
+  close(): void;
 
   /**
    * Returns the number of pages in the PDF document.
@@ -1205,7 +1205,7 @@ declare class PdfPage {
   /**
    * Closes the image file. This method should be called when an instance of ImageDocument class is not required anymore.
    */
-  close();
+  close(): void;
 
   /**
    * Returns the valid image width, in pixels.
