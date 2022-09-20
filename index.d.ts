@@ -33,6 +33,13 @@ declare enum AccessLevel {
      */
     ReadWrite = "readWrite"
 }
+declare enum Priority {
+    Low = -100000,
+    BelowNormal = -10000,
+    Normal = 0,
+    AboveNormal = 10000,
+    High = 100000
+}
 declare enum Scope {
     Element = "element",
     Flow = "flow",
@@ -49,7 +56,8 @@ declare enum EnfocusSwitchPrivateDataTag {
     userEmail = "EnfocusSwitch.userEmail",
     origin = "EnfocusSwitch.origin",
     initiated = "EnfocusSwitch.initiated",
-    submittedTo = "EnfocusSwitch.submittedTo"
+    submittedTo = "EnfocusSwitch.submittedTo",
+    state = "EnfocusSwitch.state"
 }
 /**
  * An instance of the `Connection` class represents an outgoing connection of the flow element associated with the script.
@@ -222,7 +230,7 @@ declare class FlowElement {
      * @param {string} message - the message to be logged
      * @param {string} messageParam - the value to be used as substitute
      */
-    failProcess(message: string, messageParam: string): void;
+    failProcess(message: string, messageParam?: (string | number | boolean)): void;
     /**
      * For scripted plug-ins, returns the location of the script resources folder.
      * Throws an exception if called for Switch scripts.
@@ -349,6 +357,14 @@ declare class Job {
      * Returns `true` if the job is a folder, `false` otherwise.
      */
     isFolder(): boolean;
+    /**
+     * Returns the priority of the job
+     */
+    getPriority() : number;
+    /**
+     * Sets the priority of the job
+     */
+    setPriority(priority : number) : void;
     /**
      * Marks the job as completed without generating any output.
      */
@@ -770,6 +786,11 @@ declare class Switch {
      */
     httpRequestSubscribe(method: HttpRequest.Method, path: string, args: any[]): Promise<void>;
     /**
+     * Sets the value of the abort data. This value will be passed to the abort entry point when the abort timeout has expired.
+     * @param {Any} abortData - the value of the abort data.
+     */
+    setAbortData(abortData: any): void;
+    /**
      * Marks a string literal for translation. It allows SwitchScriptTool to recognize the strings which must be gathered for translation.
      * @param {string} str - string literal that is marked for translation.
      * @returns the same string which was passed into this function as an argument.
@@ -1021,6 +1042,10 @@ declare class PdfDocument {
      * @returns {string} - the page label of the PDF page.
      */
     static getPageLabel(path: string, pageNumber?: number): string;
+    /**
+     * @returns {XmpDocument} An XmpDocument instance with the contents of the XMP metadata stream of the PDF document.
+     */
+    getXMP(): XmpDocument;
 }
 /**
  * The PdfPage class allows retrieving certain PDF information about PDF page contents.
@@ -1311,6 +1336,58 @@ declare class XmlDocument {
         [name: string]: string;
     };
 }
+
+/**
+ * The XmpDocument class allows to find certain information in XMP documents.
+ * This class does not allow modifying XMP contents.
+ *
+ * Each XmpDocument instance references an XMP content loaded from file or memory.
+ * All the methods in this class might throw an exception, so it is advised to wrap them into a try-catch block.
+ * @class
+ */
+declare class XmpDocument {
+    /**
+     * Constructs an XmpDocument instance associated with a file specified through its absolute file path.
+     * The file should contain XMP information only, i.e. no path to a PDF or image file should be provided.
+     *
+     * @param {string} path An absolute path to an XMP file.
+     * @returns {XmpDocument} An instance of the XmpDocument class.
+     */
+    static open(path: string): XmpDocument;
+
+    /**
+     * Saves the XMP packet as a file specified through its absolute file path.
+     *
+     * @param {string} path An absolute path to a file.
+     */
+    save(path: string): void;
+
+    /**
+     * Evaluates the XMP location path (refer to 'XMP location path syntax' in the Switch reference guide)
+     * against the XMP content and returns the result.
+     *
+     * Namespace prefixes in the XMP location path are resolved into namespace URIs using the prefix map
+     * provided to the function as a second argument. If the map argument is omitted or empty, the default
+     * prefix map is used for resolving prefixes. The default prefix map includes all mappings for the
+     * standard XMP namespaces, augmented with any extra mappings that occur in the XMP file.
+     *
+     * @param {string} xmpLocationPath A string containing the XMP location path to be evaluated.
+     * @param {Object.<string, string>} [additionalPrefixMap = {}] An object containing pairs of key and
+     *        value where value is a string representing the namespace URI associated with the key-prefix.
+     *        This enables the conversion between the prefixes used in the XMP location path and the
+     *        possibly different prefixes used in the XMP.
+     * @returns {(boolean|number|string|undefined)} The representation for the value that was found at
+     *          the given XMP location path. The returned value is determined based on the result type of
+     *          the expression:
+     *          - a boolean value if the expression evaluates to a boolean value
+     *          - a number value if the expression evaluates to a numeric value
+     *          - a string value if the expression evaluates to a string
+     *          - undefined in all other cases
+     */
+     evaluate(xmpLocationPath: string,
+              additionalPrefixMap?: { [name: string]: string; }): boolean | number | string | undefined;
+}
+
 declare const EnfocusSwitch: {
     AccessLevel: typeof AccessLevel;
     /**
@@ -1324,6 +1401,7 @@ declare const EnfocusSwitch: {
     PdfDocument: typeof PdfDocument;
     ImageDocument: typeof ImageDocument;
     XmlDocument: typeof XmlDocument;
+    XmpDocument: typeof XmpDocument;
     /**
      */
     PropertyType: typeof PropertyType;
