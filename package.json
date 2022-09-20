@@ -1,6 +1,6 @@
 {
   "name": "@types/switch-scripting",
-  "version": "22.0.0",
+  "version": "22.1.0",
   "description": "The type definition for Enfocus Switch Scripting",
   "keywords": [
     "switch-scripting",
