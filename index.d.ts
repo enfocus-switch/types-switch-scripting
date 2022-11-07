@@ -66,7 +66,7 @@ declare enum EnfocusSwitchPrivateDataTag {
  */
 declare class Connection {
     /**
-  
+
      * @description
      * The element ID of a particular flow element offers the following fundamental guarantees:
      *- It differs from the element ID of any other flow element in any currently active flow.
@@ -306,6 +306,16 @@ declare class FlowElement {
      * }
      */
     getJobs(ids: string[]): Promise<Job[]>;
+    /**
+     * Subscribes to the channel, which allows the flow element to receive jobs from it.<br/>
+     * 
+     * A channel can have only one active subscriber at any given point in time.<br/>
+     * 
+     * Method can only be called inside a flowStartTriggered entry point.
+     * @param {string} channelId - ID of the channel to subscribe to
+     * @param {string} backingFolderPath - path to an existing folder on the server to store incoming jobs
+     */
+    subscribeToChannel(channelId: string, backingFolderPath: string): void;
 }
 /**
  * An instance of the Job class represents a job (file or job folder) waiting to be processed in one of the input folders
@@ -357,6 +367,12 @@ declare class Job {
      * Returns `true` if the job is a folder, `false` otherwise.
      */
     isFolder(): boolean;
+    /**
+     * Schedules the job to be processed at a later moment so that jobArrived will be called again for the same job
+     * and dynamic properties set on the element will be re-evaluated.
+     * @param {number} seconds - The seconds parameter specifies the minimum time interval after which Switch will schedule the job for processing again. The default value for the interval is 300 seconds (5 minutes). Depending on run-time circumstances the actual interval may be (much) longer.
+     */
+    processLater(seconds: number): Promise<void>;
     /**
      * Returns the priority of the job
      */
@@ -433,6 +449,18 @@ declare class Job {
      * await job.sendToLog(Connection.Level.Success, DatasetModel.XML, 'log_success.xml');
      */
     sendToLog(level: Connection.Level, model: DatasetModel, newName?: string): Promise<void>;
+    /**
+     * Sends the job to the specified outgoing channel.
+     * The optional argument `newName` allows renaming the job.<br/>
+     * 
+     * If a job is sent to a channel that has no active subscribers, the operation will fail.
+     * @param {string} channelId - ID of the channel to send the job to
+     * @param {string} [newName] - new name for the job (optional)
+     * @example
+     * await job.sendToChannel('EmailHandlingChannel');
+     * await job.sendToChannel('EmailHandlingChannel', 'image.jpg');
+     */
+    sendToChannel(channelId: string, newName?: string): Promise<void>;
     /**
      * Logs a fatal error for the job with the specified message and moves the job to the Problem jobs folder.
      * `messageParams` are used as substitutes for `%1`, `%2` etc. in the message.
