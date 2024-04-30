@@ -14,6 +14,10 @@ declare enum PropertyType {
     Regex = "regex",
     OAuthToken = "oauthtoken"
 }
+declare enum NoYesListPropertyStringValue {
+    No = "No",
+    Yes = "Yes",
+}
 declare enum LogLevel {
     Info = "info",
     Warning = "warning",
