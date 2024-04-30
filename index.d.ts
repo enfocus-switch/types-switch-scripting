@@ -239,6 +239,11 @@ declare class FlowElement {
      */
     getPluginResourcesPath(): string;
     /**
+     * For scripted plug-ins, returns the location of the ScriptData folder.
+     * @returns returns the location of the ScriptData folder.
+     */
+    getScriptDataPath(): string;
+    /**
      * Creates a new job from a file or folder that already exists at the specified path. Returns a job instance
      * representing a new job with default values that does not correspond to an incoming job.
      * It should be separately routed using sendTo methods.<br/>
