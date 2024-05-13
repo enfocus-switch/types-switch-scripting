@@ -469,11 +469,11 @@ declare class Job {
     sendToLog(level: Connection.Level, model: DatasetModel, newName?: string): Promise<void>;
     /**
      * Sends the job to the specified outgoing channel.
-     * The optional argument `newName` allows renaming the job.<br/>
+     * The optional argument "newName" allows renaming the job.<br/>
      * 
      * If a job is sent to a channel that has no active subscribers, the operation will fail.
      * @param {string} channelId - ID of the channel to send the job to
-     * @param {string} [newName] - new name for the job (optional)
+     * @param {string} [newName] - New name for the job (optional)
      * @example
      * await job.sendToChannel('EmailHandlingChannel');
      * await job.sendToChannel('EmailHandlingChannel', 'image.jpg');
