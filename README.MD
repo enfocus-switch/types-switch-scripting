@@ -5,5 +5,5 @@ This package contains type definitions for Enfocus Switch Scripting.
 Learn Switch Scripting [in the Switch Scripting Developer Guide](https://www.enfocus.com/en/support/manuals/switch-manuals).
 
 ### Additional Details
- * Last updated: Mon, 30 Apr 2024
+ * Last updated: Mon, 13 May 2024
  * Global values: `EnfocusSwitch`
