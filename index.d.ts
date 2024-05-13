@@ -324,7 +324,16 @@ declare class FlowElement {
      * @param {string} channelId - ID of the channel to subscribe to
      * @param {string} backingFolderPath - path to an existing folder on the server to store incoming jobs
      */
-    subscribeToChannel(channelId: string, backingFolderPath: string): void;
+    subscribeToChannel(channelId: string, backingFolderPath: string):  void;
+
+    /**
+     * Create temp folder for scripters.<br/>
+     * The method can only be called within all entry points
+     * If the path is already exists we will return empty string.
+     * @param {string} name - optional folder name
+     * @param {boolean} createFolder - true/false for creating folder
+     */
+    createPathWithName(name: string, createFolder: boolean): Promise<any>;
 }
 /**
  * An instance of the Job class represents a job (file or job folder) waiting to be processed in one of the input folders
@@ -827,6 +836,14 @@ declare class Switch {
      * @param {Any} abortData - the value of the abort data.
      */
     setAbortData(abortData: any): void;
+    /**
+     * Retrieves the preference setting based on the provided setting key from the database.
+     * If only the settingGroup is specified, returns the entire settingGroup object.
+     * If both settingGroup and settingName are specified, returns the specific setting value.
+     * @param {string} settingKey - The key of the setting to retrieve in the format "settingGroup" or "settingGroup/settingName".
+     * @returns {Promise<any>} The entire group data or the value of the setting, or an appropriate message if not found.
+     */
+    getPreferenceSetting(settingKey: string): Promise<any>;
     /**
      * Marks a string literal for translation. It allows SwitchScriptTool to recognize the strings which must be gathered for translation.
      * @param {string} str - string literal that is marked for translation.
