@@ -324,7 +324,7 @@ declare class FlowElement {
      * @param {string} channelId - ID of the channel to subscribe to
      * @param {string} backingFolderPath - path to an existing folder on the server to store incoming jobs
      */
-    subscribeToChannel(channelId: string, backingFolderPath: string):  void;
+    subscribeToChannel(channelId: string, backingFolderPath: string): void;
 
     /**
      * Create temp folder for scripters.<br/>
@@ -333,7 +333,7 @@ declare class FlowElement {
      * @param {string} name - optional folder name
      * @param {boolean} createFolder - true/false for creating folder
      */
-    createPathWithName(name: string, createFolder: boolean): Promise<any>;
+    createPathWithName(name: string, createFolder?: boolean): Promise<any>;
 }
 /**
  * An instance of the Job class represents a job (file or job folder) waiting to be processed in one of the input folders
@@ -394,11 +394,11 @@ declare class Job {
     /**
      * Returns the priority of the job
      */
-    getPriority() : number;
+    getPriority(): number;
     /**
      * Sets the priority of the job
      */
-    setPriority(priority : number) : void;
+    setPriority(priority: number): void;
     /**
      * Marks the job as completed without generating any output.
      */
@@ -469,11 +469,11 @@ declare class Job {
     sendToLog(level: Connection.Level, model: DatasetModel, newName?: string): Promise<void>;
     /**
      * Sends the job to the specified outgoing channel.
-     * The optional argument "newName" allows renaming the job.<br/>
+     * The optional argument `newName` allows renaming the job.<br/>
      * 
      * If a job is sent to a channel that has no active subscribers, the operation will fail.
      * @param {string} channelId - ID of the channel to send the job to
-     * @param {string} [newName] - New name for the job (optional)
+     * @param {string} [newName] - new name for the job (optional)
      * @example
      * await job.sendToChannel('EmailHandlingChannel');
      * await job.sendToChannel('EmailHandlingChannel', 'image.jpg');
@@ -752,6 +752,38 @@ declare class Job {
      * }
      */
     getDataset(name: string, accessLevel: AccessLevel): Promise<string>;
+    /**
+     * Retrieves the value of a Switch variable as a string.
+     * @param {string} variable - The name of the Switch variable.
+     * @returns {Promise<string>} The value of the Switch variable as a string.
+     */
+    getVariableAsString(variable: string): Promise<any>;
+    /** 
+    * Retrieves the value of a XML as Json Object
+    * @param {string} path - The name of the Model and where the file has been created.
+    * @returns {Promise<any>} The value of the method is any format.
+    */
+    getxmlData(path: any): Promise<any>;
+    /** 
+    * Retrieves the value  as Json Object.
+    * @param {string} metadata - The name of the Model and where the file has been created.
+    * @returns {Promise<any>} The value of the method is any format.
+    */
+    getJSONData(metadata: any): Promise<any>;
+    /** 
+    * Retrieves the value as Json Object.
+    * @param {string} path - The name of the Model and where the file has been created.
+    * @param {string} xpath - Xpath query that is used to fetch the data from the XMP Document.
+    * @returns {Promise<any>} The value of the method is any format.
+    */
+    getxmpData(path: any, xpath: any): Promise<any>;
+    /** 
+    * Retrieves the value of a XMP as a string or Boolean or Number.
+    * @param {string} path - The name of the Model and where the file has been created.
+    * @param {string} xpath - Xpath query that is used to fetch the data from the JDF Document.
+    * @returns {Promise<any>} The value of the method is any format..
+    */
+    getJdfData(path: any, xpath: any): Promise<any>;
 }
 /**
  * The single instance of the Switch class is passed as an argument to the script entry points. It
@@ -841,7 +873,7 @@ declare class Switch {
      * If only the settingGroup is specified, returns the entire settingGroup object.
      * If both settingGroup and settingName are specified, returns the specific setting value.
      * @param {string} settingKey - The key of the setting to retrieve in the format "settingGroup" or "settingGroup/settingName".
-     * @returns {Promise<any>} The entire group data or the value of the setting, or an appropriate message if not found.
+     * @returns {Promise<any>} The entire group data or the value of the setting, or an empty string if not found.
      */
     getPreferenceSetting(settingKey: string): Promise<any>;
     /**
@@ -1438,10 +1470,9 @@ declare class XmpDocument {
      *          - a string value if the expression evaluates to a string
      *          - undefined in all other cases
      */
-     evaluate(xmpLocationPath: string,
-              additionalPrefixMap?: { [name: string]: string; }): boolean | number | string | undefined;
+    evaluate(xmpLocationPath: string,
+        additionalPrefixMap?: { [name: string]: string; }): boolean | number | string | undefined;
 }
-
 declare const EnfocusSwitch: {
     AccessLevel: typeof AccessLevel;
     /**
