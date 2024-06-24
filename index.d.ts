@@ -763,7 +763,7 @@ declare class Job {
     * @param {string} path - The name of the Model and where the file has been created.
     * @returns {Promise<any>} The value of the method is any format.
     */
-    getxmlData(path: any): Promise<any>;
+    getxmlData(path: any, xpathQuery:any): Promise<any>;
     /** 
     * Retrieves the value  as Json Object.
     * @param {string} metadata - The name of the Model and where the file has been created.
@@ -881,7 +881,11 @@ declare class Switch {
      * @param {string} str - string literal that is marked for translation.
      * @returns the same string which was passed into this function as an argument.
      */
-    static tr(str: string): string;
+    static tr(str: string): string;/**
+    * Provides the current switch version number. 
+    * @returns the version of switch server where the script is running
+    */
+   static getServerVersion(): number;
 }
 /**
  * Represents the arrived webhook request.
