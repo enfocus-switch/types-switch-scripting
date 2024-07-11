@@ -885,7 +885,7 @@ declare class Switch {
     * Provides the current switch version number. 
     * @returns the version of switch server where the script is running
     */
-   static getServerVersion(): number;
+    getServerVersion(): number;
 }
 /**
  * Represents the arrived webhook request.
