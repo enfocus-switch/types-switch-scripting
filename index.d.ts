@@ -89,6 +89,11 @@ declare class Connection {
      */
     getName(): string;
     /**
+     * @description Returns the type of the connection as one of the following strings: "Move", "Filter", "Traffic-data", Traffic-log", "Traffic-datawithlog".
+     * @returns {string} the type of connection returned as a string.
+     */
+    getType(): string;    
+    /**
      * Returns the value of a custom outgoing connection property as string.
      * The property for which to return the value is specified by its property tag.
      * @param {string} tag - the tag for which the property value is requested
@@ -329,11 +334,19 @@ declare class FlowElement {
     /**
      * Create temp folder for scripters.<br/>
      * The method can only be called within all entry points
-     * If the path is already exists we will return empty string.
+     * If the path already exists we will return an empty string.
      * @param {string} name - optional folder name
      * @param {boolean} createFolder - true/false for creating folder
      */
     createPathWithName(name: string, createFolder?: boolean): Promise<any>;
+    /**
+     * Returns the number of files currently residing in the folder at the other end of this connection (the originating folder for an incoming connection, the target folder for an outgoing connection)
+    * If nested is false, only items directly inside the folder are counted (i.e. each file and each subfolder is counted as one item). 
+    * If nested is true, the number of files in subfolders are counted as well, recursively (and subfolders themselves do not contribute to the count).
+    * @param {boolean} nested - nested files and folders to count
+    * @returns {number} the name of the property as visible in the user interface.
+     */
+    getFileCount(nested: boolean): Promise<number>;
 }
 /**
  * An instance of the Job class represents a job (file or job folder) waiting to be processed in one of the input folders
@@ -388,7 +401,7 @@ declare class Job {
     /**
      * Schedules the job to be processed at a later moment so that jobArrived will be called again for the same job
      * and dynamic properties set on the element will be re-evaluated.
-     * @param {number} seconds - The seconds parameter specifies the minimum time interval after which Switch will schedule the job for processing again. The default value for the interval is 300 seconds (5 minutes). Depending on run-time circumstances the actual interval may be (much) longer.
+     * @param {number} seconds - The seconds parameter specifies the minimum time interval after which Switch will schedule the job for processing again. The default value for the interval is 300 seconds (5 minutes). Depending on run-time circumstances the actual interval may be (much) longer.
      */
     processLater(seconds: number): Promise<void>;
     /**
@@ -881,7 +894,8 @@ declare class Switch {
      * @param {string} str - string literal that is marked for translation.
      * @returns the same string which was passed into this function as an argument.
      */
-    static tr(str: string): string;/**
+    static tr(str: string): string;
+    /**
     * Provides the current switch version number. 
     * @returns the version of switch server where the script is running
     */
