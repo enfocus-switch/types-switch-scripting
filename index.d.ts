@@ -120,6 +120,14 @@ declare class Connection {
      * @param {string} tag - property tag
      */
     hasProperty(tag: string): boolean;
+    /**
+     * Returns the number of files currently residing in the folder at the other end of this connection (the originating folder for an incoming connection, the target folder for an outgoing connection)
+    * If nested is false, only items directly inside the folder are counted (i.e. each file and each subfolder is counted as one item). 
+    * If nested is true, the number of files in subfolders are counted as well, recursively (and subfolders themselves do not contribute to the count).
+    * @param {boolean} nested - nested files and folders to count
+    * @returns {number} the name of the property as visible in the user interface.
+     */
+    getFileCount(nested: boolean): Promise<number>;
 }
 /**
  */
@@ -340,7 +348,7 @@ declare class FlowElement {
      */
     createPathWithName(name: string, createFolder?: boolean): Promise<any>;
     /**
-     * Returns the number of files currently residing in the folder at the other end of this connection (the originating folder for an incoming connection, the target folder for an outgoing connection)
+     * Returns the number of files in the active flow.
     * If nested is false, only items directly inside the folder are counted (i.e. each file and each subfolder is counted as one item). 
     * If nested is true, the number of files in subfolders are counted as well, recursively (and subfolders themselves do not contribute to the count).
     * @param {boolean} nested - nested files and folders to count
